@@ -15,61 +15,129 @@
 
 pragma solidity =0.6.6;
 
+/**
+ * @title WETH9
+ * @dev Wrapped Ether 合约
+ * 将 ETH 包装为 ERC20 兼容的代币
+ */
 contract WETH9 {
+    // 代币名称
     string public name     = "Wrapped Ether";
+    // 代币符号
     string public symbol   = "WETH";
+    // 小数位数
     uint8  public decimals = 18;
 
+    // 授权事件
     event  Approval(address indexed src, address indexed guy, uint wad);
+    // 转账事件
     event  Transfer(address indexed src, address indexed dst, uint wad);
+    // 存款事件
     event  Deposit(address indexed dst, uint wad);
+    // 取款事件
     event  Withdrawal(address indexed src, uint wad);
 
+    // 地址到余额的映射
     mapping (address => uint)                       public  balanceOf;
+    // 地址到授权额度的映射
     mapping (address => mapping (address => uint))  public  allowance;
 
+    // 回退函数已注释，如需启用请取消注释
     // function() public payable {
     //     deposit();
     // }
+
+    /**
+     * @dev 存款函数
+     * 将 ETH 转换为 WETH
+     */
     function deposit() public payable {
+        // 增加存款人的 WETH 余额
         balanceOf[msg.sender] += msg.value;
+        // 触发存款事件
         emit Deposit(msg.sender, msg.value);
     }
+
+    /**
+     * @dev 取款函数
+     * 将 WETH 转换为 ETH
+     * @param wad 取款金额
+     */
     function withdraw(uint wad) public {
-        require(balanceOf[msg.sender] >= wad, "");
+        // 确保余额充足
+        require(balanceOf[msg.sender] >= wad, "Insufficient balance");
+        // 减少 WETH 余额
         balanceOf[msg.sender] -= wad;
+        // 发送 ETH 给调用者
         msg.sender.transfer(wad);
+        // 触发取款事件
         emit Withdrawal(msg.sender, wad);
     }
 
+    /**
+     * @dev 获取总供应量
+     * @return 总 WETH 供应量（等于合约中的 ETH 余额）
+     */
     function totalSupply() public view returns (uint) {
         return address(this).balance;
     }
 
+    /**
+     * @dev 授权函数
+     * 授权其他地址使用指定数量的 WETH
+     * @param guy 被授权地址
+     * @param wad 授权金额
+     * @return 操作是否成功
+     */
     function approve(address guy, uint wad) public returns (bool) {
+        // 设置授权额度
         allowance[msg.sender][guy] = wad;
+        // 触发授权事件
         emit Approval(msg.sender, guy, wad);
         return true;
     }
 
+    /**
+     * @dev 转账函数
+     * 从调用者账户转账给目标地址
+     * @param dst 目标地址
+     * @param wad 转账金额
+     * @return 操作是否成功
+     */
     function transfer(address dst, uint wad) public returns (bool) {
+        // 调用 transferFrom 函数
         return transferFrom(msg.sender, dst, wad);
     }
 
+    /**
+     * @dev 从指定地址转账函数
+     * 从 src 地址转账给 dst 地址
+     * @param src 源地址
+     * @param dst 目标地址
+     * @param wad 转账金额
+     * @return 操作是否成功
+     */
     function transferFrom(address src, address dst, uint wad)
         public
         returns (bool)
     {
-        require(balanceOf[src] >= wad, "");
+        // 确保源地址余额充足
+        require(balanceOf[src] >= wad, "Insufficient balance");
 
+        // 如果调用者不是源地址，且授权额度不是无限
         if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
-            require(allowance[src][msg.sender] >= wad, "");
+            // 确保授权额度充足
+            require(allowance[src][msg.sender] >= wad, "Insufficient allowance");
+            // 减少授权额度
             allowance[src][msg.sender] -= wad;
         }
 
+        // 减少源地址余额
         balanceOf[src] -= wad;
+        // 增加目标地址余额
         balanceOf[dst] += wad;
 
+        // 触发转账事件
         emit Transfer(src, dst, wad);
 
         return true;
