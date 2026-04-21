@@ -84,7 +84,7 @@ library UniswapV2Library {
     }
 
     /**
-     * @dev 计算给定输入金额能获得的最大输出金额
+     * @dev 计算给定输入金额能获得的最大输出金额--已知输入求输出
      * @param amountIn 输入金额
      * @param reserveIn 输入资产的储备
      * @param reserveOut 输出资产的储备
@@ -92,7 +92,18 @@ library UniswapV2Library {
      * @notice 考虑0.3%的交易费
      */
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
+       
+        // 公式推导：
+        // 恒定乘积公式：x * y = k
+        // 加入手续费：只有 99.7% 进入池子
+        // (x + 0.997 * Δx) * (y - Δy) = x * y
+        // 解得：Δy = (0.997 * Δx * y) / (x + 0.997 * Δx)
         // 确保输入金额大于0
+
+        // amountIn = Δx (用户要卖的数量)
+        // reserveIn = x (池子里代币A的数量)
+        // reserveOut = y (池子里代币B的数量)
+        // amountOut = Δy (用户能得到的数量)
         require(amountIn > 0, 'UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT');
         // 确保储备大于0
         require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
@@ -107,7 +118,7 @@ library UniswapV2Library {
     }
 
     /**
-     * @dev 计算获得给定输出金额所需的输入金额
+     * @dev 计算获得给定输出金额所需的输入金额 -- 已知输出求输入
      * @param amountOut 输出金额
      * @param reserveIn 输入资产的储备
      * @param reserveOut 输出资产的储备
@@ -115,7 +126,15 @@ library UniswapV2Library {
      * @notice 考虑0.3%的交易费，向上取整
      */
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn) {
+        // 公式推导：
+        // (x + 0.997 * Δx) * (y - Δy) = x * y
+        // 解得：Δx = (x * Δy * 1000) / ((y - Δy) * 997)
         // 确保输出金额大于0
+
+        // amountOut = Δy (用户想得到的数量)
+        // reserveIn = x
+        // reserveOut = y
+        // amountIn = Δx (用户需要支付的数量)
         require(amountOut > 0, 'UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT');
         // 确保储备大于0
         require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
